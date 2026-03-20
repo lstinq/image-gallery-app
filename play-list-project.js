@@ -58,11 +58,15 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
   }
 
   prevSlide() {
-    this.index = this.index > 0 ? this.index - 1 : this.slideCount - 1;
+    if (this.index > 0) {
+      this.index = this.index - 1;
+    }
   }
 
   nextSlide() {
-    this.index = this.index < this.slideCount - 1 ? this.index + 1 : 0;
+    if (this.index < this.slideCount - 1) {
+      this.index = this.index + 1;
+    }
   }
 
   handleKeyDown(e) {
@@ -98,17 +102,19 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
       .play-list-outer {
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: var(--ddd-spacing-4);
         margin: 0;
       }
       .play-list-shell {
-        flex: 1;
         display: flex;
         flex-direction: column;
         background-color: var(--ddd-theme-default-limestoneMaxLight);
         border-radius: var(--ddd-radius-md);
         box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
         overflow: hidden;
+        width: 80vh;
+        height: 80vh;
       }
       .navigation-button {
         background: none;
@@ -140,10 +146,16 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
         flex-direction: column;
       }
       .play-list-footer {
-        padding: 0 var(--ddd-spacing-8) var(--ddd-spacing-8);
+        padding: 0 var(--ddd-spacing-8) var(--ddd-spacing-2);
         display: flex;
-        justify-content: left;
+        justify-content: center;
         gap: var(--ddd-spacing-2);
+      }
+      .play-list-caption {
+        padding: 0 var(--ddd-spacing-8) 0;
+        font-size: var(--ddd-font-size-xs);
+        text-align: left;
+        color: var(--ddd-theme-default-coalyGray);
       }
     `];
   }
@@ -169,6 +181,9 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
                 </play-list-indicator>
               `)}
             </div>
+            <div class="play-list-caption">
+              <slot name="caption"></slot>
+            </div>
           </div>
           <button class="navigation-button" @click="${this.nextSlide}">&#8594;</button>
         </div>
@@ -178,5 +193,3 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
 }
 
 globalThis.customElements.define(PlayListProject.tag, PlayListProject);
-
-// Initial commit

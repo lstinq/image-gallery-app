@@ -11,8 +11,6 @@ export class PlayListSlide extends DDDSuper(I18NMixin(LitElement)) {
   static get properties() {
     return {
       ...super.properties,
-      topHeading: { type: String, attribute: "top-heading" },
-      subHeading: { type: String, attribute: "sub-heading" },
       active: { type: Boolean, reflect: true },
     };
   }
@@ -27,35 +25,17 @@ export class PlayListSlide extends DDDSuper(I18NMixin(LitElement)) {
         flex-direction: column;
         flex: 1;
       }
-      .slide-top-heading {
-        margin: 0;
-        font-size: var(--ddd-font-size-xs);
-        font-weight: var(--ddd-font-weight-bold);
-        color: var(--ddd-theme-default-beaver80);
-        text-transform: uppercase;
-      }
-      .slide-sub-heading {
-        margin: 0;
-        font-size: var(--ddd-font-size-xl);
-        font-weight: var(--ddd-font-weight-bold);
-        color: var(--ddd-theme-default-beaverBlue);
-      }
       .slide-body {
         margin: 0;
         flex: 1;
         overflow-y: auto;
         width: 100%;
-        max-width: 60ch;
-        font-size: var(--ddd-font-size-xs);
-        color: var(--ddd-theme-default-coalyGray);
       }
     `];
   }
 
   render() {
     return html`
-      ${this.topHeading ? html`<p class="slide-top-heading">${this.topHeading}</p>` : ""}
-      ${this.subHeading ? html`<h2 class="slide-sub-heading">${this.subHeading}</h2>` : ""}
       <div class="slide-body">
         <slot></slot>
       </div>
