@@ -178,3 +178,5 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
 }
 
 globalThis.customElements.define(PlayListProject.tag, PlayListProject);
+
+// Initial commit
