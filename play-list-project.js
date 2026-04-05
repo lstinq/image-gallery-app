@@ -20,14 +20,19 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
 
   constructor() {
     super();
+    this.postId = "";
     this.title = "";
     this.index = 0;
     this.slideCount = 0;
     this.slides = [];
     this.username = "";
     this.avatar = "";
+    this.since = "";
+    this.channel = "";
     this.caption = "";
     this.date = "";
+    this.liked = false;
+    this.saved = false;
     this.t = this.t || {};
     this.t = { ...this.t, title: "Title" };
   }
@@ -36,14 +41,19 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
   static get properties() {
     return {
       ...super.properties,
+      postId: { type: String },
       title: { type: String },
       index: { type: Number, reflect: true },
       slideCount: { type: Number },
       slides: { type: Array },
       username: { type: String },
       avatar: { type: String },
+      since: { type: String },
+      channel: { type: String },
       caption: { type: String },
       date: { type: String },
+      liked: { type: Boolean },
+      saved: { type: Boolean },
     };
   }
 
@@ -52,13 +62,34 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
     const startIndex = parseInt(params.get("activeIndex")) || 0;
     const res = await fetch("/api/data");
     const data = await res.json();
+    this.postId = data.postId;
     this.slides = data.slides;
     this.slideCount = this.slides.length;
+    this.username = data.author.username;
+    this.avatar = data.author.avatar;
+    this.since = data.author.since;
+    this.channel = data.author.channel;
     this.index = startIndex;
-    this.username = data.slides[0].username;
-    this.avatar = data.slides[0].avatar;
-    this.caption = data.slides[0].description;
-    this.date = data.slides[0].date;
+    this.liked = localStorage.getItem(`liked:${this.postId}`) === "true";
+    this.saved = localStorage.getItem(`saved:${this.postId}`) === "true";
+    this._updateMeta(startIndex);
+  }
+
+  toggleLike() {
+    this.liked = !this.liked;
+    localStorage.setItem(`liked:${this.postId}`, this.liked);
+  }
+
+  toggleSave() {
+    this.saved = !this.saved;
+    localStorage.setItem(`saved:${this.postId}`, this.saved);
+  }
+
+  _updateMeta(i) {
+    const slide = this.slides[i];
+    this.title = slide.title;
+    this.caption = slide.description;
+    this.date = slide.date;
   }
 
   prevSlide() {
@@ -83,14 +114,10 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
 
   goToSlide(i) {
     this.index = i;
+    this._updateMeta(i);
     const url = new URL(window.location);
     url.searchParams.set("activeIndex", i);
     window.history.pushState({}, "", url);
-    this.dispatchEvent(new CustomEvent("slide-changed", {
-      composed: true,
-      bubbles: true,
-      detail: { index: i },
-    }));
   }
 
   // Lit scoped styles
@@ -102,6 +129,7 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
         color: var(--ddd-theme-primary);
         background-color: var(--ddd-theme-accent);
         font-family: var(--ddd-font-navigation);
+        color-scheme: light dark;
       }
       .wrapper {
         padding: var(--ddd-spacing-8);
@@ -117,20 +145,32 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
         position: relative;
         display: flex;
         flex-direction: column;
-        background-color: var(--ddd-theme-default-white);
+        background-color: light-dark(var(--ddd-theme-default-white), var(--ddd-theme-default-coalyGray));
         border-radius: var(--ddd-radius-md);
         box-shadow: 0 2px 16px rgba(0, 0, 0, 0.25);
         overflow-y: hidden;
-        width: 460px;
-        height: 720px;
+        width: min(460px, 100%);
+        height: auto;
+        min-height: 600px;
       }
+      .image-wrapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        aspect-ratio: 1 / 1;
+        pointer-events: none;
+        z-index: 10;
+      }
+
       .navigation-button {
         position: absolute;
-        top: calc(60px + 230px);
+        top: 50%;
         transform: translateY(-50%);
+        pointer-events: all;
         z-index: 10;
-        background: rgba(255, 255, 255, 0.75);
-        color: var(--ddd-theme-default-beaverBlue);
+        background-color: light-dark(var(--ddd-theme-default-white), var(--ddd-theme-default-coalyGray));
+        opacity: 0.75;
         border: none;
         border-radius: 50%;
         width: 36px;
@@ -141,10 +181,11 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
         align-items: center;
         justify-content: center;
         backdrop-filter: blur(4px);
+        color: light-dark(var(--ddd-theme-default-coalyGray), var(--ddd-theme-default-white));
       }
       .navigation-button:hover {
-        color: var(--ddd-theme-default-white);
-        background-color: var(--ddd-theme-default-beaver80);
+        color: light-dark(var(--ddd-theme-default-white), var(--ddd-theme-default-coalyGray));
+        background-color: light-dark(var(--ddd-theme-default-beaverBlue), var(--ddd-theme-default-accent));
       }
       .navigation-prev {
         left: var(--ddd-spacing-4);
@@ -158,6 +199,7 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
         flex-direction: column;
         padding: 0;
         overflow: hidden;
+        position: relative;
       }
       .slide-viewport {
         flex: 1;
@@ -168,6 +210,7 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
       .gallery-header {
         display: flex;
         align-items: center;
+        background-color: light-dark(var(--ddd-theme-default-white), var(--ddd-theme-default-coalyGray));
         gap: var(--ddd-spacing-4);
         padding: var(--ddd-spacing-4) var(--ddd-spacing-4);
         flex-shrink: 0;
@@ -182,21 +225,44 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
       .gallery-username {
         font-weight: var(--ddd-font-weight-bold);
         font-size: var(--ddd-font-size-s);
+        color: light-dark(var(--ddd-theme-default-coalyGray), var(--ddd-theme-default-white));
+      }
+      .gallery-channel {
+        display: block;
+        font-size: var(--ddd-font-size-xs);
+        color: var(--ddd-theme-default-limestoneGray);
+      }
+      .gallery-since {
+        display: block;
+        font-size: var(--ddd-font-size-xs);
+        color: var(--ddd-theme-default-limestoneGray);
+      }
+      .gallery-title {
+        display: block;
+        font-size: var(--ddd-font-size-xs);
+        color: var(--ddd-theme-default-limestoneGray);
       }
       .gallery-caption {
         padding: var(--ddd-spacing-2) var(--ddd-spacing-4) 0;
         font-size: var(--ddd-font-size-s);
         flex-shrink: 0;
+        color: light-dark(var(--ddd-theme-default-coalyGray), var(--ddd-theme-default-white));
       }
       .gallery-caption-username {
         font-weight: var(--ddd-font-weight-bold);
         margin-right: var(--ddd-spacing-1);
+        color: light-dark(var(--ddd-theme-default-coalyGray), var(--ddd-theme-default-white));
       }
       .gallery-date {
         font-size: var(--ddd-font-size-xs);
         color: var(--ddd-theme-default-limestoneGray);
-        padding: var(--ddd-spacing-2) var(--ddd-spacing-4) var(--ddd-spacing-2);
+        padding: var(--ddd-spacing-2) var(--ddd-spacing-4) var(--ddd-spacing-4);
         flex-shrink: 0;
+      }
+      @media (max-width: 500px) {
+        .wrapper {
+          padding: var(--ddd-spacing-2);
+        }
       }
     `];
   }
@@ -207,29 +273,40 @@ export class PlayListProject extends DDDSuper(I18NMixin(LitElement)) {
       <div class="wrapper">
         <div class="play-list-outer">
           <div class="play-list-shell" @keydown="${this.handleKeyDown}" tabindex="0"
-              @indicator-clicked="${(e) => this.goToSlide(e.detail.index)}">
-              
-              <button class="navigation-button navigation-prev" @click="${this.prevSlide}">&#8592;</button>
-              <button class="navigation-button navigation-next" @click="${this.nextSlide}">&#8594;</button>
+            @indicator-clicked="${(e) => this.goToSlide(e.detail.index)}">
 
               <div class="gallery-header">
                 <img class="avatar" src="${this.avatar}" alt="${this.username}"/>
-                <span class="gallery-username">${this.username}</span>
+                <div>
+                  <span class="gallery-username">${this.username}</span>
+                  <span class="gallery-channel">Channel: ${this.channel}</span>
+                  <span class="gallery-since">User Since: ${this.since}</span>
+                  <span class="gallery-title">Title: ${this.title}</span>
+                </div>
               </div>
 
             <div class="play-list-body">
-              <div class="slide-viewport">
-                ${this.slides.map((slide, i) => html`
-                  <play-list-slide ?active="${i === this.index}">
+              <div class="image-container">
+                <div class="image-wrapper">
+                  <button class="navigation-button navigation-prev" @click="${this.prevSlide}">&#8592;</button>
+                  <button class="navigation-button navigation-next" @click="${this.nextSlide}">&#8594;</button>
+                </div>
+                <div class="slide-viewport">
+                  ${this.slides.length > 0 ? html`
+                  <play-list-slide active>
                     <floof-card
-                      .slideId="${slide.id}"
-                      .image="${slide.image}"
-                      .title="${slide.title}"
+                      .title="${this.slides[this.index].title}"
+                      .image="${this.slides[this.index].thumbnail}"
                       .slideCount="${this.slideCount}"
-                      .activeIndex="${this.index}">
+                      .activeIndex="${this.index}"
+                      .liked="${this.liked}"
+                      .saved="${this.saved}"
+                      @toggle-like="${this.toggleLike}"
+                      @toggle-save="${this.toggleSave}">
                     </floof-card>
                   </play-list-slide>
-                `)}
+                  ` : ''}
+                </div>
               </div>
             </div>
 

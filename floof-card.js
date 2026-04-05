@@ -1,6 +1,5 @@
 import { LitElement, html, css } from "lit";
 import { DDDSuper } from "@haxtheweb/d-d-d/d-d-d.js";
-import { I18NMixin } from "@haxtheweb/i18n-manager/lib/I18NMixin.js";
 
 export class FloofCard extends DDDSuper(LitElement) {
 
@@ -13,9 +12,9 @@ export class FloofCard extends DDDSuper(LitElement) {
             ...super.properties,
             image: { type: String },
             title: { type: String },
-            slideId: { type: String },
             liked: { type: Boolean, reflect: true },
             saved: { type: Boolean, reflect: true },
+            copied: { type: Boolean, reflect: true },
             slideCount: { type: Number },
             activeIndex: { type: Number },
         };
@@ -25,37 +24,39 @@ export class FloofCard extends DDDSuper(LitElement) {
         super();
         this.image = "";
         this.title = "";
-        this.slideId = "";
         this.liked = false;
         this.saved = false;
-        this._localStorageLoaded = false;
+        this.copied = false;
         this.slideCount = 0;
         this.activeIndex = 0;
     }
 
-    updated(changedProperties) {
-        if (changedProperties.has("slideId") && this.slideId && !this._localStorageLoaded) {
-            this._localStorageLoaded = true;
-            this.liked = localStorage.getItem(`liked:${this.slideId}`) === "true";
-            this.saved = localStorage.getItem(`saved:${this.slideId}`) === "true";
-        }
-    }
-
     toggleLike() {
-        this.liked = !this.liked;
-        localStorage.setItem(`liked:${this.slideId}`, this.liked);
+        this.dispatchEvent(new CustomEvent("toggle-like", {
+            bubbles: true,
+            composed: true
+        }));
     }
 
     toggleSave() {
-        this.saved = !this.saved;
-        localStorage.setItem(`saved:${this.slideId}`, this.saved);
+        this.dispatchEvent(new CustomEvent("toggle-save", {
+            bubbles: true,
+            composed: true
+        }));
+    }
+
+    shareSlide() {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+            this.copied = true;
+            setTimeout(() => this.copied = false, 2000);
+        });
     }
 
     goToSlide(i) {
         this.dispatchEvent(new CustomEvent("indicator-clicked", {
             bubbles: true,
             composed: true,
-            detail: { index: i },
+            detail: { index: i }
         }));
     }
 
@@ -64,10 +65,11 @@ export class FloofCard extends DDDSuper(LitElement) {
             :host {
                 display: block;
                 width: 100%;
+                color-scheme: light dark;
             }
             .card {
                 width: 100%;
-                background-color: var(--ddd-theme-default-white);
+                background-color: light-dark(var(--ddd-theme-default-white), var(--ddd-theme-default-coalGray));
             }
             .card-image {
                 width: 100%;
@@ -76,43 +78,11 @@ export class FloofCard extends DDDSuper(LitElement) {
                 display: block;
                 max-height: 460px;
             }
-            .card-header {
-                display: flex;
-                align-items: center;
-                gap: var(--ddd-spacing-4);
-                padding: var(--ddd-spacing-4) var(--ddd-spacing-4);
-            }
-            .avatar {
-                width: 36px;
-                height: 36px;
-                border-radius: 50%;
-                object-fit: cover;
-                border: 2px solid var(--ddd-theme-default-beaverBlue);
-            }
-            .username {
-                font-weight: var(--ddd-font-weight-bold);
-                font-size: var(--ddd-font-size-s);
-            }
-            .card-actions {
-                display: flex;
-                align-items: center;
-                gap: var(--ddd-spacing-2);
-                padding: var(--ddd-spacing-2) var(--ddd-spacing-4);
-            }
-            .action-button {
-                background: none;
-                border: none;
-                cursor: pointer;
-                justify-content: left;
-                font-size: var(--ddd-font-size-s);
-                padding: 0;
-                line-height: 1;
-            }
             .card-indicators {
                 display: flex;
                 justify-content: center;
                 gap: var(--ddd-spacing-2);
-                padding: var(--ddd-spacing-4) 0 var(--ddd-spacing-2);
+                padding: var(--ddd-spacing-4) 0;
             }
             .indicator-dot {
                 width: 8px;
@@ -125,8 +95,28 @@ export class FloofCard extends DDDSuper(LitElement) {
                 padding: 0;
             }
             .indicator-dot.active {
-                background-color: var(--ddd-theme-default-beaverBlue);
+                background-color: light-dark(var(--ddd-theme-default-beaverBlue), var(--ddd-theme-default-accent));
                 opacity: 1;
+            }
+            .card-actions {
+                display: flex;
+                align-items: center;
+                gap: var(--ddd-spacing-2);
+                padding: var(--ddd-spacing-2) var(--ddd-spacing-4) var(--ddd-spacing-2);
+            }
+            .action-button {
+                background: none;
+                border: none;
+                cursor: pointer;
+                justify-content: left;
+                font-size: var(--ddd-font-size-s);
+                padding: 0;
+                line-height: 1;
+            }
+            .share-button {
+                color: light-dark(var(--ddd-theme-default-coalyGray), var(--ddd-theme-default-white));
+                font-size: var(--ddd-font-size-s);
+                font-family: var(--ddd-font-navigation);
             }
         `];
     }
@@ -136,13 +126,12 @@ export class FloofCard extends DDDSuper(LitElement) {
             <div class="card">
                 <img class="card-image" src="${this.image}" alt="${this.title}" loading="lazy"/>
 
-
                 <div class="card-indicators">
                     ${Array.from({ length: this.slideCount }, (_, i) => html`
-                    <button
-                        class="indicator-dot ${i === this.activeIndex ? 'active' : ''}"
-                        @click="${() => this.goToSlide(i)}">
-                    </button>
+                        <button
+                            class="indicator-dot ${i === this.activeIndex ? 'active' : ''}"
+                            @click="${() => this.goToSlide(i)}">
+                        </button>
                     `)}
                 </div>
 
@@ -152,6 +141,9 @@ export class FloofCard extends DDDSuper(LitElement) {
                     </button>
                     <button class="action-button save-button" @click="${this.toggleSave}">
                         ${this.saved ? "✅" : "💾"}
+                    </button>
+                    <button class="action-button share-button" @click="${this.shareSlide}">
+                        ${this.copied ? "🔗 Link copied!" : "🔗 Share"}
                     </button>
                 </div>
 
